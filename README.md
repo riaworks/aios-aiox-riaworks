@@ -1,21 +1,24 @@
 # AIOS-AIOX-RIAWORKS
 
-> RIAWORKS fixes and extensions for the [Synkra AIOX](https://github.com/SynkraAI/aiox-core) hook system, focused on Claude Code context injection.
+> RIAWORKS fixes and logging extensions for the [Synkra AIOX](https://github.com/SynkraAI/aiox-core) hook system, focused on Claude Code context injection.
 
 **[Leia em Portugues (pt-BR)](./README.pt-BR.md)**
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
 - [Files](#files)
-  - [Setup & Installation](#setup--installation)
-  - [Fixes](#fixes)
-  - [Logging](#logging-riaworks-extensions)
-- [Naming Convention](#naming-convention)
-- [Modified Files in the Project](#modified-files-in-the-project)
+- [Logging Reference (rw- logs)](#logging-reference-rw--logs)
+  - [rw-hooks-log](#1-rw-hooks-log--operational-status)
+  - [rw-synapse-trace](#2-rw-synapse-trace--synapse-xml-trace)
+  - [rw-intel-context-log](#3-rw-intel-context-log--code-intel-injection)
+  - [rw-context-log-full](#4-rw-context-log-full--unified-full-log)
+  - [Individual vs Full](#individual-vs-full)
 - [Activation](#activation)
-- [Prompt: Apply All Fixes and Logging](#self-service-prompt-for-claude-to-apply-all-fixes-and-logging)
-- [Prompt: Toggle Logging](#self-service-prompt-for-claude-to-toggle-logging)
+- [Prompt: Apply All Fixes](#prompt-apply-all-fixes)
+- [Prompt: Toggle Logging](#prompt-toggle-logging)
 - [Original Repository](#original-repository)
 - [License](#license)
 
@@ -25,7 +28,41 @@
 
 AIOX uses Claude Code hooks to inject SYNAPSE rules (coding standards, constitution, domain context) on every prompt. In the original repository, these hooks have documented bugs that cause **silent context loss** — Claude Code operates without project rules with no warning.
 
-This repository contains the applied fixes and two logging systems created by RIAWORKS to diagnose and trace context injection.
+This repository contains:
+- **8 bug fixes** for the hook system
+- **4 logging extensions** (`rw-*`) to diagnose and trace context injection
+
+## Prerequisites
+
+### Execution directory
+
+The prompt **must be executed at the project root** — the directory that contains `.aiox-core/`. This is the same directory where Claude Code is running your project.
+
+```
+your-project/              <-- execute here
+├── .aiox-core/
+├── .claude/
+├── .synapse/
+├── aios-aiox-riaworks/    <-- this repo must be here
+└── ...
+```
+
+### This repository
+
+The `aios-aiox-riaworks/` folder must exist at the project root. If it does not exist, the self-service prompt will ask for permission to clone it:
+
+```bash
+git clone https://github.com/riaworks/aios-aiox-riaworks.git
+```
+
+> **Important:** Claude Code can read all fix documentation and code snippets directly from the files in `aios-aiox-riaworks/`. The prompts reference these files — no need to copy code manually.
+
+## Quick Start
+
+1. Make sure you are at the project root (where `.aiox-core/` lives)
+2. Make sure `aios-aiox-riaworks/` exists (or let the prompt clone it)
+3. Copy the [Apply All Fixes prompt](#prompt-apply-all-fixes) into Claude Code
+4. After fixes are applied, optionally [enable logging](#activation)
 
 ## Files
 
@@ -33,88 +70,235 @@ This repository contains the applied fixes and two logging systems created by RI
 
 | File | Description |
 |------|-------------|
-| [`01-fix-hook-synapse.md`](./01-fix-hook-synapse.md) | SYNAPSE setup and installation guide. How to obtain the `.synapse/` directory from the [official AIOX repository](https://github.com/SynkraAI/aiox-core), expected directory structure, hook configuration, and diagnostics. |
+| [`01-fix-hook-synapse.md`](./01-fix-hook-synapse.md) | SYNAPSE setup and installation guide. How to obtain `.synapse/` from the [official AIOX repository](https://github.com/SynkraAI/aiox-core), expected structure, hook configuration, and diagnostics. |
 
 ### Fixes
 
 | File | Description |
 |------|-------------|
-| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 7 bugs fixed in Claude Code hooks: wrong registration in settings.json, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths incompatible across IDEs, 10ms timeout, and PreCompact runner not found. |
-| [`03-fix-windows-json-escape.md`](./03-fix-windows-json-escape.md) | Fix for an intermittent bug where Claude Code sends Windows paths without escaping backslashes in JSON (`C:\dir` instead of `C:\\dir`), causing `JSON.parse()` failure and SYNAPSE rules loss on that prompt. |
+| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 7 bugs fixed: wrong hook registration, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths, 10ms timeout, PreCompact runner not found. |
+| [`03-fix-windows-json-escape.md`](./03-fix-windows-json-escape.md) | Fix for intermittent JSON parse failure on Windows when Claude Code sends unescaped backslashes (`C:\dir` instead of `C:\\dir`). |
 
-### Logging (RIAWORKS Extensions)
+### Logging (rw- extensions)
 
 | File | Description |
 |------|-------------|
-| [`rw-hooks-log.md`](./rw-hooks-log.md) | Documentation for `rwHooksLog()` — lightweight operational log that records hook execution status (session created, runtime resolved, errors). Activated via `RW_HOOKS_LOG=1`. Writes to `.logs/rw-hooks-log.log`. |
-| [`rw-synapse-trace.md`](./rw-synapse-trace.md) | Documentation for `rwSynapseTrace()` — detailed trace that records user prompt, session ID, bracket, and the full XML injected as `additionalContext`. Activated via `RW_SYNAPSE_TRACE=1`. Writes to `.logs/rw-synapse-trace.log`. |
-| [`rw-context-log-full.md`](./rw-context-log-full.md) | Documentation for `rwContextLogFull()` — unified log that captures user prompt, SYNAPSE injection, and static context file listing in a single entry. Activated via `RW_CONTEXT_LOG_FULL=1`. Writes to `.logs/rw-context-log-full.log`. |
-| [`rw-intel-context-log.md`](./rw-intel-context-log.md) | Documentation for `rwIntelContextLog()` — log for code-intel PreToolUse injections (file analysis context on Write/Edit). Activated via `RW_INTEL_CONTEXT_LOG=1`. Writes to `.logs/rw-intel-context-log.log`. |
+| [`rw-hooks-log.md`](./rw-hooks-log.md) | `rwHooksLog()` — operational hook status |
+| [`rw-synapse-trace.md`](./rw-synapse-trace.md) | `rwSynapseTrace()` — full SYNAPSE XML trace |
+| [`rw-intel-context-log.md`](./rw-intel-context-log.md) | `rwIntelContextLog()` — code-intel injection log |
+| [`rw-context-log-full.md`](./rw-context-log-full.md) | `rwContextLogFull()` — unified full log |
 
-## Naming Convention
+---
 
-All RIAWORKS extensions use the `rw` prefix to differentiate from original code:
+## Logging Reference (rw- logs)
 
-| Function | Env Var | Log File |
-|----------|---------|----------|
-| `rwHooksLog()` | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` |
-| `rwSynapseTrace()` | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` |
-| `rwContextLogFull()` | `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-context-log-full.log` |
-| `rwIntelContextLog()` | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` |
+All RIAWORKS logging extensions use the `rw-` prefix. There are **4 logs**: 3 individual + 1 unified.
 
-## Modified Files in the Project
+### Quick Reference
 
-| File | Changes |
-|------|---------|
-| `.claude/settings.local.json` | Relative paths, no timeout, hooks registered on correct events |
-| `.aiox-core/core/synapse/runtime/hook-runtime.js` | `hookEventName`, `createSession()`, `rwHooksLog()`, `cleanOrphanTmpFiles()` |
-| `.claude/hooks/synapse-engine.cjs` | `sanitizeJsonString()`, `rwSynapseTrace()`, removal of `process.exit()` |
-| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` corrected to `.aiox-core` |
-| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copied from fork with adapted paths |
-| `bin/utils/pro-detector.js` | Precompact runner dependency |
-| `.logs/` | Directory created with `.gitignore` |
+| # | Log | Env Var | Log File | Hook | Weight |
+|---|-----|---------|----------|------|--------|
+| 1 | **rw-hooks-log** | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` | UserPromptSubmit | Light (~100B/prompt) |
+| 2 | **rw-synapse-trace** | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` | UserPromptSubmit | Heavy (~4KB/prompt) |
+| 3 | **rw-intel-context-log** | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` | PreToolUse (Write/Edit) | Conditional |
+| 4 | **rw-context-log-full** | `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-context-log-full.log` | Both | Heavy (~5-10KB/prompt) |
 
-## Activation
+---
 
-The logging variables are **not** activated via `export` in the terminal. They are set as **inline env vars** directly in the hook command inside `.claude/settings.local.json`.
+### 1. rw-hooks-log — Operational Status
 
-### Where to configure
+**Purpose:** Answers "is the hook working or failing?"
 
-File: `.claude/settings.local.json` → `hooks.UserPromptSubmit[0].hooks[0].command`
+Records hook lifecycle events: session created, runtime resolved, errors. Does **not** record content (prompts, XML).
 
-### Examples
+**When to use:** First line of diagnosis. If hooks are silently failing, this log shows exactly where the flow breaks.
 
-**Default (logging disabled):**
-```json
-"command": "node .claude/hooks/synapse-engine.cjs"
-```
+| Log Entry | Meaning | SYNAPSE Injected? |
+|-----------|---------|-------------------|
+| `Session created: {id}` | First session run | Yes (next log confirms) |
+| `Runtime resolved` | Hook executed successfully | Yes |
+| `Hook output: N rules` | Rules generated and written to stdout | Yes |
+| `No .synapse/ directory` | Missing .synapse/ | No |
+| `Failed to resolve runtime` | Engine/session error | No |
+| `Hook crashed` | Fatal error | No |
 
-**Enable hook execution log only:**
+**Activate individually:**
 ```json
 "command": "RW_HOOKS_LOG=1 node .claude/hooks/synapse-engine.cjs"
 ```
 
-**Enable SYNAPSE trace only:**
+**Watch:**
+```bash
+tail -f .logs/rw-hooks-log.log
+```
+
+Full documentation: [`rw-hooks-log.md`](./rw-hooks-log.md)
+
+---
+
+### 2. rw-synapse-trace — SYNAPSE XML Trace
+
+**Purpose:** Answers "what rules exactly were injected?"
+
+Records the full SYNAPSE XML injected as `additionalContext` on every prompt, including user prompt, session ID, and bracket.
+
+**When to use:** When you need to see the exact rules Claude received. Useful to detect missing rules, wrong bracket, or empty injection.
+
+**Activate individually:**
 ```json
 "command": "RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
 ```
 
-**Enable both (recommended for debugging):**
+**Watch:**
+```bash
+tail -f .logs/rw-synapse-trace.log
+```
+
+Full documentation: [`rw-synapse-trace.md`](./rw-synapse-trace.md)
+
+---
+
+### 3. rw-intel-context-log — Code-Intel Injection
+
+**Purpose:** Answers "what code context was injected when the agent edited this file?"
+
+Records the `<code-intel-context>` XML injected on **Write/Edit** operations only. Shows entities, references, and dependencies for the file being edited.
+
+**When to use:** When you suspect code-intel is not providing context for edited files, or want to verify what entity data Claude sees.
+
+> **Note:** This log runs on a different hook (`PreToolUse`) than the other two. It only fires when the agent writes or edits a file, not on every prompt.
+
+**Activate individually:**
+```json
+"command": "RW_INTEL_CONTEXT_LOG=1 node .claude/hooks/code-intel-pretool.cjs"
+```
+
+> This goes in the `PreToolUse` hook section, **not** in `UserPromptSubmit`.
+
+**Watch:**
+```bash
+tail -f .logs/rw-intel-context-log.log
+```
+
+Full documentation: [`rw-intel-context-log.md`](./rw-intel-context-log.md)
+
+---
+
+### 4. rw-context-log-full — Unified Full Log
+
+**Purpose:** Answers "what is the complete context Claude is receiving?"
+
+Captures **everything** in a single chronological log file:
+
+| Section | Source | When |
+|---------|--------|------|
+| `[USER PROMPT]` | User text | Every prompt |
+| `[SESSION]` | Session ID + bracket | Every prompt |
+| `[SYNAPSE INJECTION]` | Full `<synapse-rules>` XML | Every prompt |
+| `[STATIC CONTEXT]` | CLAUDE.md, rules/*.md, MEMORY.md listing | Every prompt |
+| `[CODE-INTEL INJECTION]` | `<code-intel-context>` XML | Every Write/Edit |
+
+**When to use:** When you want a single place to see everything, instead of checking multiple log files.
+
+**Activate:**
+
+> **Important:** `RW_CONTEXT_LOG_FULL=1` must be added to **both** hooks:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "command",
+        "command": "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/synapse-engine.cjs"
+      }]
+    }],
+    "PreToolUse": [{
+      "hooks": [{
+        "type": "command",
+        "command": "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/code-intel-pretool.cjs"
+      }],
+      "matcher": "Write|Edit"
+    }]
+  }
+}
+```
+
+**Watch:**
+```bash
+tail -f .logs/rw-context-log-full.log
+```
+
+Full documentation: [`rw-context-log-full.md`](./rw-context-log-full.md)
+
+---
+
+### Individual vs Full
+
+You can use any log individually, or activate the full unified log. Here is the relationship:
+
+| Individual Log | Included in Full? | Can be used alone? |
+|----------------|--------------------|--------------------|
+| `RW_HOOKS_LOG` | **Yes** | Yes |
+| `RW_SYNAPSE_TRACE` | **Yes** | Yes |
+| `RW_INTEL_CONTEXT_LOG` | **Yes** | Yes |
+| `RW_CONTEXT_LOG_FULL` | N/A — **is the unified master** | Yes |
+
+**Key points:**
+
+- **Full replaces all 3 individuals.** When `RW_CONTEXT_LOG_FULL=1` is active, you do **not** need `RW_HOOKS_LOG`, `RW_SYNAPSE_TRACE`, or `RW_INTEL_CONTEXT_LOG`.
+- **Individuals can be combined.** You can activate any combination of the 3 individual logs. Example: `RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1` for operational + XML trace without code-intel.
+- **Full writes to a single file.** All 3 individual logs write to separate files. Full writes everything to `.logs/rw-context-log-full.log`.
+- **You can mix.** Activating both `RW_CONTEXT_LOG_FULL=1` and an individual log will write to both files (no conflict, but redundant).
+
+#### Recommended combinations
+
+| Scenario | Configuration |
+|----------|---------------|
+| Quick health check | `RW_HOOKS_LOG=1` only |
+| Debug missing rules | `RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1` |
+| Debug code-intel only | `RW_INTEL_CONTEXT_LOG=1` on PreToolUse |
+| Full diagnostic session | `RW_CONTEXT_LOG_FULL=1` on both hooks |
+
+---
+
+## Activation
+
+Logging variables are **not** activated via `export` in the terminal. They are set as **inline env vars** directly in the hook command inside `.claude/settings.local.json`.
+
+### Where to configure
+
+File: `.claude/settings.local.json` → `hooks` section
+
+There are **two separate hooks** that accept logging:
+
+| Hook Event | Script | Accepts |
+|------------|--------|---------|
+| `UserPromptSubmit` | `synapse-engine.cjs` | `RW_HOOKS_LOG`, `RW_SYNAPSE_TRACE`, `RW_CONTEXT_LOG_FULL` |
+| `PreToolUse` (Write\|Edit) | `code-intel-pretool.cjs` | `RW_INTEL_CONTEXT_LOG`, `RW_CONTEXT_LOG_FULL` |
+
+### Examples
+
+**Default (all logging disabled):**
+```json
+"command": "node .claude/hooks/synapse-engine.cjs"
+"command": "node .claude/hooks/code-intel-pretool.cjs"
+```
+
+**Hook log only (lightweight):**
+```json
+"command": "RW_HOOKS_LOG=1 node .claude/hooks/synapse-engine.cjs"
+```
+
+**Hook log + SYNAPSE trace (recommended for debug):**
 ```json
 "command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
 ```
 
-### Log output
-
-| Variable | Log File | Content |
-|----------|----------|---------|
-| `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` | Hook lifecycle: session created, runtime resolved, errors |
-| `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` | Full SYNAPSE XML injected as `additionalContext`, session ID, bracket |
-
-```bash
-# Watch logs in real time
-tail -f .logs/rw-hooks-log.log
-tail -f .logs/rw-synapse-trace.log
+**Full unified (both hooks):**
+```json
+"command": "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/synapse-engine.cjs"
+"command": "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/code-intel-pretool.cjs"
 ```
 
 ### To disable
@@ -122,25 +306,57 @@ tail -f .logs/rw-synapse-trace.log
 Remove the env var prefixes from the command, leaving only:
 ```json
 "command": "node .claude/hooks/synapse-engine.cjs"
+"command": "node .claude/hooks/code-intel-pretool.cjs"
 ```
+
+### Behavior (all logs)
+
+- **Opt-in:** Only writes when the env var is set to `1`
+- **Fire-and-forget:** Never blocks hook execution
+- **Auto-create:** Creates `.logs/` with `.gitignore` if it doesn't exist
+- **Append-only:** Never overwrites, always appends
 
 ---
 
-## Self-Service: Prompt for Claude to Apply All Fixes and Logging
+## Prompt: Apply All Fixes
 
-Copy the prompt below and paste it in Claude Code to have it apply all 8 bug fixes and both logging systems to your AIOX project. The prompt includes integrity verification at every step.
+Copy the prompt below and paste it into Claude Code. It will read the fix documentation from `aios-aiox-riaworks/` and apply all fixes to your project.
 
 > **Prerequisites:** Your project must have the AIOX hook structure (`.claude/hooks/`, `.aiox-core/core/synapse/`, `.claude/settings.local.json`).
 
-### Full Apply Prompt
+### Self-Service Apply Prompt
 
 ````
 I need you to apply all RIAWORKS fixes and logging extensions to this AIOX project.
-Read the documentation below, verify every target file before editing, and apply each fix.
 
-## PHASE 1 — INTEGRITY CHECK (read-only, do NOT edit yet)
+## STEP 0 — VERIFY REPOSITORY
 
-Read these files and confirm they exist. Report their current state:
+Check if the folder `aios-aiox-riaworks/` exists at the project root (same level as `.aiox-core/`).
+
+If it does NOT exist, ask me:
+"The aios-aiox-riaworks repository is not present. Can I clone it from
+https://github.com/riaworks/aios-aiox-riaworks.git into this directory?"
+
+Wait for my confirmation before cloning. If it already exists, continue.
+
+## STEP 1 — READ ALL DOCUMENTATION
+
+Read these files from the `aios-aiox-riaworks/` directory. They contain all fix details,
+code snippets, and expected behavior. Do NOT guess — use the exact code from these files:
+
+1. `aios-aiox-riaworks/01-fix-hook-synapse.md` — SYNAPSE setup requirements
+2. `aios-aiox-riaworks/02-fix-hooks-bugs.md` — All 7 bug fixes with code
+3. `aios-aiox-riaworks/03-fix-windows-json-escape.md` — JSON escape fix with code
+4. `aios-aiox-riaworks/rw-hooks-log.md` — rwHooksLog() function and usage
+5. `aios-aiox-riaworks/rw-synapse-trace.md` — rwSynapseTrace() function and usage
+6. `aios-aiox-riaworks/rw-intel-context-log.md` — rwIntelContextLog() function and usage
+7. `aios-aiox-riaworks/rw-context-log-full.md` — rwContextLogFull() function and usage
+
+After reading, report a summary of what you found.
+
+## STEP 2 — INTEGRITY CHECK (read-only, do NOT edit yet)
+
+Read and verify these target files:
 
 1. `.claude/settings.local.json` — check if hooks.UserPromptSubmit exists
 2. `.claude/hooks/synapse-engine.cjs` — check if readStdin() and main() exist
@@ -151,217 +367,111 @@ Read these files and confirm they exist. Report their current state:
 For each file, report:
 - EXISTS: yes/no
 - KEY FUNCTIONS FOUND: list them
-- ALREADY PATCHED: yes/no (check if fixes below are already applied)
+- ALREADY PATCHED: yes/no (compare against the fixes in the documentation)
 
-Do NOT proceed to Phase 2 until you report all findings and I confirm.
+Do NOT proceed to Step 3 until you report findings and I confirm.
 
-## PHASE 2 — APPLY FIXES (edit only after Phase 1 confirmation)
+## STEP 3 — APPLY FIXES
 
-### Fix 1: Hook registration in settings.local.json
-In `.claude/settings.local.json`, ensure hooks are registered correctly:
-- `UserPromptSubmit` must run ONLY `synapse-engine.cjs`
-- `PreCompact` must run ONLY `precompact-session-digest.cjs`
-- `PreToolUse` with matcher `Write|Edit` must run `code-intel-pretool.cjs`
-- All commands must use RELATIVE paths (e.g., `node .claude/hooks/synapse-engine.cjs`)
-- NO `timeout` field on any hook
-- NO `${CLAUDE_PROJECT_DIR}` in any path
+Apply each fix described in the documentation files you read in Step 1.
+Use the exact code from the documentation — do NOT invent or modify.
 
-### Fix 2: hookEventName in buildHookOutput
-In `.aiox-core/core/synapse/runtime/hook-runtime.js`, find `buildHookOutput()`.
-Add `hookEventName: 'UserPromptSubmit'` inside `hookSpecificOutput` if missing:
-```javascript
-hookSpecificOutput: {
-  hookEventName: 'UserPromptSubmit',
-  additionalContext: xml || '',
-},
-```
+For each fix:
+- If ALREADY APPLIED, skip and report "already patched"
+- If target file MISSING, report and ask before proceeding
 
-### Fix 3: Remove process.exit() in synapse-engine.cjs
-In `.claude/hooks/synapse-engine.cjs`, find the main() call at the bottom.
-Replace:
-```javascript
-main().then(() => process.exit(0));
-```
-With:
-```javascript
-main().then(() => {}).catch(() => {});
-```
+## STEP 4 — APPLY LOGGING EXTENSIONS
 
-### Fix 4: createSession() fallback in hook-runtime.js
-In `.aiox-core/core/synapse/runtime/hook-runtime.js`, find where loadSession() is called.
-Ensure there is a fallback to createSession() when loadSession returns null:
-```javascript
-let session = loadSession(sessionId, sessionsDir);
-if (!session && sessionId) {
-  session = createSession(sessionId, cwd, sessionsDir);
-}
-```
+Apply the 4 logging functions (rwHooksLog, rwSynapseTrace, rwIntelContextLog,
+rwContextLogFull) as described in their respective documentation files.
 
-### Fix 5: Fix .aios-core path in code-intel-pretool.cjs
-In `.claude/hooks/code-intel-pretool.cjs`, replace any reference to `.aios-core` with `.aiox-core`.
+## STEP 5 — VALIDATION
 
-### Fix 6: Remove timeout from settings
-In `.claude/settings.local.json`, remove any `"timeout": 10` or similar timeout fields from hook definitions.
-
-### Fix 7: Verify PreCompact runner
-Check if `.aiox-core/hooks/unified/runners/precompact-runner.js` exists.
-If not, check if `bin/utils/pro-detector.js` exists.
-Report what is found — do NOT create files that don't exist in the source.
-
-### Fix 8: sanitizeJsonString() for Windows JSON escape
-In `.claude/hooks/synapse-engine.cjs`, add this function if it doesn't exist:
-```javascript
-function sanitizeJsonString(raw) {
-  return raw.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
-}
-```
-Then in `readStdin()`, wrap JSON.parse in a try-catch with fallback:
-```javascript
-try {
-  return JSON.parse(data);
-} catch (e) {
-  try {
-    return JSON.parse(sanitizeJsonString(data));
-  } catch (e2) {
-    throw e; // throw original error
-  }
-}
-```
-
-## PHASE 3 — APPLY LOGGING EXTENSIONS
-
-### rwHooksLog() in hook-runtime.js
-In `.aiox-core/core/synapse/runtime/hook-runtime.js`, add this function if it doesn't exist:
-```javascript
-function rwHooksLog(cwd, level, message) {
-  if (process.env.RW_HOOKS_LOG !== '1') return;
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const logsDir = path.join(cwd, '.logs');
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
-      fs.writeFileSync(path.join(logsDir, '.gitignore'), '*\n');
-    }
-    const timestamp = new Date().toISOString();
-    const line = `[${timestamp}] [${level}] ${message}\n`;
-    fs.appendFileSync(path.join(logsDir, 'hook-ops.log'), line);
-  } catch (_) { /* fire-and-forget */ }
-}
-```
-Call it at key points: after session created, after runtime resolved, on errors.
-
-### rwSynapseTrace() in synapse-engine.cjs
-In `.claude/hooks/synapse-engine.cjs`, add this function if it doesn't exist:
-```javascript
-function rwSynapseTrace(cwd, { prompt, sessionId, bracket, xml }) {
-  if (process.env.RW_SYNAPSE_TRACE !== '1') return;
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const logsDir = path.join(cwd, '.logs');
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
-      fs.writeFileSync(path.join(logsDir, '.gitignore'), '*\n');
-    }
-    const timestamp = new Date().toISOString();
-    const sep = '='.repeat(80);
-    const entry = [
-      sep,
-      `[${timestamp}] USER PROMPT`,
-      sep,
-      prompt || '(empty)',
-      '',
-      `[${timestamp}] SESSION ID: ${sessionId || '(none)'}`,
-      `[${timestamp}] BRACKET: ${bracket || '(unknown)'}`,
-      '',
-      sep,
-      `[${timestamp}] SYNAPSE OUTPUT (injected as additionalContext)`,
-      sep,
-      xml || '(empty)',
-      '',
-    ].join('\n');
-    fs.appendFileSync(path.join(logsDir, 'synapse-trace.log'), entry);
-  } catch (_) { /* fire-and-forget */ }
-}
-```
-Call it after the SYNAPSE engine generates the XML output.
-
-## PHASE 4 — VALIDATION
-
-After all edits, run this verification command:
-```bash
-echo '{"prompt":"test","session_id":"verify","cwd":"'$(pwd)'"}' \
-  | node .claude/hooks/synapse-engine.cjs 2>/dev/null \
-  | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log('hookEventName:',j.hookSpecificOutput?.hookEventName);console.log('rules:',j.hookSpecificOutput?.additionalContext?.includes('CONSTITUTION')?'YES':'NO');console.log('STATUS: OK');}catch(e){console.log('STATUS: FAIL',e.message);}})"
-```
-
-Expected output:
-```
-hookEventName: UserPromptSubmit
-rules: YES
-STATUS: OK
-```
-
-Report the result. If FAIL, diagnose using the error message and fix before finishing.
+Run the verification command from `02-fix-hooks-bugs.md` and report the result.
+Create `.logs/` directory with `.gitignore` containing `*` if it doesn't exist.
 
 ## RULES
-- Do NOT skip Phase 1. Integrity check is mandatory.
-- Do NOT create files that don't exist — only modify existing ones.
-- If a fix is ALREADY APPLIED, skip it and report "already patched".
-- If a target file is MISSING or its structure changed, report the discrepancy and ask before proceeding.
-- After Phase 4, create `.logs/` directory with a `.gitignore` containing `*` if it doesn't exist.
+- Do NOT skip Step 1. Reading the documentation is mandatory.
+- Do NOT skip Step 2. Integrity check is mandatory.
+- ALL code comes from the documentation files — never invent code.
+- If a target file does not exist or changed structure, ask before proceeding.
 ````
 
 ---
 
-## Self-Service: Prompt for Claude to Toggle Logging
+## Prompt: Toggle Logging
 
-After the fixes are installed, you can ask Claude to enable or disable the logging. The prompts below include **integrity verification** so Claude checks if file paths and method signatures still match before making changes.
+After the fixes are installed, use these prompts to enable or disable logging.
 
 ### Prompt to ENABLE logging
 
 ```
-Read the file .claude/settings.local.json and locate the UserPromptSubmit hook command
-that runs synapse-engine.cjs. Before modifying, verify:
+Read `aios-aiox-riaworks/README.md`, section "Activation".
+Then read `.claude/settings.local.json` and locate the hook commands.
 
-1. The file .claude/hooks/synapse-engine.cjs exists
-2. It contains the functions rwHooksLog() and rwSynapseTrace()
-3. The current command in settings.local.json points to the correct path
+Before modifying, verify:
+1. `.claude/hooks/synapse-engine.cjs` exists and contains rwHooksLog/rwSynapseTrace
+2. `.claude/hooks/code-intel-pretool.cjs` exists and contains rwIntelContextLog
+3. The commands in settings.local.json point to the correct paths
 
-If all checks pass, update the command to:
-"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
+If all checks pass, update the commands to enable full unified logging:
+- UserPromptSubmit: "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/synapse-engine.cjs"
+- PreToolUse: "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/code-intel-pretool.cjs"
 
-If any check fails, report what changed and suggest the correct fix instead of
-blindly applying the edit.
+If any check fails, report what changed and suggest the correct fix.
 ```
 
 ### Prompt to DISABLE logging
 
 ```
-Read the file .claude/settings.local.json and locate the UserPromptSubmit hook command.
-Verify that .claude/hooks/synapse-engine.cjs exists and the command path is correct.
+Read `.claude/settings.local.json` and locate the hook commands.
+Verify that both hook scripts exist at their expected paths.
 
-If verified, update the command to:
-"command": "node .claude/hooks/synapse-engine.cjs"
+If verified, update both commands to remove all RW_ env vars:
+- UserPromptSubmit: "node .claude/hooks/synapse-engine.cjs"
+- PreToolUse: "node .claude/hooks/code-intel-pretool.cjs"
 
-If the file path or structure has changed, report the discrepancy before editing.
+If paths or structure changed, report before editing.
 ```
 
 ### Why integrity checks matter
 
 The AIOX framework evolves across sessions. Files may be renamed, methods refactored, or hook registration restructured. The prompts above force Claude to:
 
-1. **Verify file existence** — confirm `synapse-engine.cjs` is still at the expected path
-2. **Verify method signatures** — confirm `rwHooksLog()` and `rwSynapseTrace()` still exist in the source
-3. **Verify settings structure** — confirm `UserPromptSubmit` hook is still registered in `settings.local.json`
-4. **Report before acting** — if anything changed, Claude explains the discrepancy instead of applying a broken edit
+1. **Read the documentation first** — all code comes from `aios-aiox-riaworks/` files, not from memory
+2. **Verify file existence** — confirm scripts are still at expected paths
+3. **Verify method signatures** — confirm rw functions exist in source
+4. **Report before acting** — explain discrepancies instead of applying broken edits
 
 ---
+
+## Modified Files in the Project
+
+| File | Changes |
+|------|---------|
+| `.claude/settings.local.json` | Relative paths, no timeout, hooks on correct events |
+| `.aiox-core/core/synapse/runtime/hook-runtime.js` | `hookEventName`, `createSession()`, `rwHooksLog()`, `cleanOrphanTmpFiles()` |
+| `.claude/hooks/synapse-engine.cjs` | `sanitizeJsonString()`, `rwSynapseTrace()`, `rwContextLogFull()`, removal of `process.exit()` |
+| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwContextLogFull()` |
+| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copied from fork with adapted paths |
+| `bin/utils/pro-detector.js` | Precompact runner dependency |
+| `.logs/` | Directory created with `.gitignore` |
+
+## Naming Convention
+
+All RIAWORKS extensions use the `rw` prefix to differentiate from original AIOX code:
+
+| Function | Env Var | Log File |
+|----------|---------|----------|
+| `rwHooksLog()` | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` |
+| `rwSynapseTrace()` | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` |
+| `rwIntelContextLog()` | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` |
+| `rwContextLogFull()` | `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-context-log-full.log` |
 
 ## Original Repository
 
 - **AIOX Core:** [github.com/SynkraAI/aiox-core](https://github.com/SynkraAI/aiox-core)
+- **This repo:** [github.com/riaworks/aios-aiox-riaworks](https://github.com/riaworks/aios-aiox-riaworks)
 - **AIOX** is the AI-Orchestrated System for Full Stack Development by Synkra AI
 
 ## License
