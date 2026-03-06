@@ -2,7 +2,7 @@
 
 **Funcao:** `rwHooksLog(cwd, level, message)`
 **Env var:** `RW_HOOKS_LOG=1`
-**Arquivo de log:** `.logs/hook-ops.log`
+**Arquivo de log:** `.logs/rw-hooks-log.log`
 **Definida em:** `.aiox-core/core/synapse/runtime/hook-runtime.js`
 
 ---
@@ -61,16 +61,16 @@ Remova `RW_HOOKS_LOG=1` do comando:
 
 ```bash
 # Log completo
-cat .logs/hook-ops.log
+cat .logs/rw-hooks-log.log
 
 # Tempo real
-tail -f .logs/hook-ops.log
+tail -f .logs/rw-hooks-log.log
 
 # Apenas erros
-grep ERROR .logs/hook-ops.log
+grep ERROR .logs/rw-hooks-log.log
 
 # Ultimas 20 linhas
-tail -20 .logs/hook-ops.log
+tail -20 .logs/rw-hooks-log.log
 ```
 
 ## Formato do log

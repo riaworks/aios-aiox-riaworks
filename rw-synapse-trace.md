@@ -2,7 +2,7 @@
 
 **Funcao:** `rwSynapseTrace(cwd, { prompt, sessionId, bracket, xml })`
 **Env var:** `RW_SYNAPSE_TRACE=1`
-**Arquivo de log:** `.logs/synapse-trace.log`
+**Arquivo de log:** `.logs/rw-synapse-trace.log`
 **Definida em:** `.claude/hooks/synapse-engine.cjs`
 
 ---
@@ -77,19 +77,19 @@ Remova `RW_SYNAPSE_TRACE=1` do comando:
 
 ```bash
 # Log completo
-cat .logs/synapse-trace.log
+cat .logs/rw-synapse-trace.log
 
 # Tempo real
-tail -f .logs/synapse-trace.log
+tail -f .logs/rw-synapse-trace.log
 
 # Apenas prompts do usuario
-grep -A 5 "USER PROMPT" .logs/synapse-trace.log
+grep -A 5 "USER PROMPT" .logs/rw-synapse-trace.log
 
 # Apenas XML injetado
-grep -A 50 "SYNAPSE OUTPUT" .logs/synapse-trace.log
+grep -A 50 "SYNAPSE OUTPUT" .logs/rw-synapse-trace.log
 
 # Apenas brackets
-grep "BRACKET:" .logs/synapse-trace.log
+grep "BRACKET:" .logs/rw-synapse-trace.log
 ```
 
 ## Formato do log

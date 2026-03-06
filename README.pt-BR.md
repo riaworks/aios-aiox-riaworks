@@ -37,8 +37,8 @@ Este repositorio contem os fixes aplicados e dois sistemas de logging criados pe
 
 | Arquivo | Descricao |
 |---------|-----------|
-| [`rw-hooks-log.md`](./rw-hooks-log.md) | Documentacao do `rwHooksLog()` — log operacional leve que registra status de execucao dos hooks (session criada, runtime resolvido, erros). Ativado via `RW_HOOKS_LOG=1`. Grava em `.logs/hook-ops.log`. |
-| [`rw-synapse-trace.md`](./rw-synapse-trace.md) | Documentacao do `rwSynapseTrace()` — trace detalhado que registra o prompt do usuario, session ID, bracket e o XML completo injetado como `additionalContext`. Ativado via `RW_SYNAPSE_TRACE=1`. Grava em `.logs/synapse-trace.log`. |
+| [`rw-hooks-log.md`](./rw-hooks-log.md) | Documentacao do `rwHooksLog()` — log operacional leve que registra status de execucao dos hooks (session criada, runtime resolvido, erros). Ativado via `RW_HOOKS_LOG=1`. Grava em `.logs/rw-hooks-log.log`. |
+| [`rw-synapse-trace.md`](./rw-synapse-trace.md) | Documentacao do `rwSynapseTrace()` — trace detalhado que registra o prompt do usuario, session ID, bracket e o XML completo injetado como `additionalContext`. Ativado via `RW_SYNAPSE_TRACE=1`. Grava em `.logs/rw-synapse-trace.log`. |
 
 ## Nomenclatura
 
@@ -46,8 +46,8 @@ Todas as extensoes RIAWORKS usam prefixo `rw` para diferenciacao do codigo origi
 
 | Funcao | Env var | Arquivo de log |
 |--------|---------|---------------|
-| `rwHooksLog()` | `RW_HOOKS_LOG=1` | `.logs/hook-ops.log` |
-| `rwSynapseTrace()` | `RW_SYNAPSE_TRACE=1` | `.logs/synapse-trace.log` |
+| `rwHooksLog()` | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` |
+| `rwSynapseTrace()` | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` |
 
 ## Arquivos modificados no projeto
 
@@ -95,13 +95,13 @@ Arquivo: `.claude/settings.local.json` → `hooks.UserPromptSubmit[0].hooks[0].c
 
 | Variavel | Arquivo de log | Conteudo |
 |----------|---------------|----------|
-| `RW_HOOKS_LOG=1` | `.logs/hook-ops.log` | Ciclo de vida do hook: session criada, runtime resolvido, erros |
-| `RW_SYNAPSE_TRACE=1` | `.logs/synapse-trace.log` | XML SYNAPSE completo injetado como `additionalContext`, session ID, bracket |
+| `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` | Ciclo de vida do hook: session criada, runtime resolvido, erros |
+| `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` | XML SYNAPSE completo injetado como `additionalContext`, session ID, bracket |
 
 ```bash
 # Acompanhar logs em tempo real
-tail -f .logs/hook-ops.log
-tail -f .logs/synapse-trace.log
+tail -f .logs/rw-hooks-log.log
+tail -f .logs/rw-synapse-trace.log
 ```
 
 ### Para desativar
