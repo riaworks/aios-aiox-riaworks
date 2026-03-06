@@ -49,19 +49,99 @@ Todas as extensoes RIAWORKS usam prefixo `rw` para diferenciacao do codigo origi
 | `bin/utils/pro-detector.js` | Dependencia do precompact runner |
 | `.logs/` | Diretorio criado com `.gitignore` |
 
-## Inicio Rapido
+## Ativacao
+
+As variaveis de logging **nao** sao ativadas via `export` no terminal. Elas sao definidas como **env vars inline** diretamente no comando do hook dentro de `.claude/settings.local.json`.
+
+### Onde configurar
+
+Arquivo: `.claude/settings.local.json` → `hooks.UserPromptSubmit[0].hooks[0].command`
+
+### Exemplos
+
+**Padrao (logging desativado):**
+```json
+"command": "node .claude/hooks/synapse-engine.cjs"
+```
+
+**Ativar apenas log de hooks:**
+```json
+"command": "RW_HOOKS_LOG=1 node .claude/hooks/synapse-engine.cjs"
+```
+
+**Ativar apenas trace SYNAPSE:**
+```json
+"command": "RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
+```
+
+**Ativar ambos (recomendado para debug):**
+```json
+"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
+```
+
+### Saida dos logs
+
+| Variavel | Arquivo de log | Conteudo |
+|----------|---------------|----------|
+| `RW_HOOKS_LOG=1` | `.logs/hook-ops.log` | Ciclo de vida do hook: session criada, runtime resolvido, erros |
+| `RW_SYNAPSE_TRACE=1` | `.logs/synapse-trace.log` | XML SYNAPSE completo injetado como `additionalContext`, session ID, bracket |
 
 ```bash
-# Ativar log de execucao dos hooks
-export RW_HOOKS_LOG=1
-
-# Ativar trace de injecao SYNAPSE
-export RW_SYNAPSE_TRACE=1
-
 # Acompanhar logs em tempo real
 tail -f .logs/hook-ops.log
 tail -f .logs/synapse-trace.log
 ```
+
+### Para desativar
+
+Remova os prefixos de env var do comando, deixando apenas:
+```json
+"command": "node .claude/hooks/synapse-engine.cjs"
+```
+
+---
+
+## Self-Service: Prompt para o Claude ativar/desativar o logging
+
+Como a ativacao requer editar o `settings.local.json`, voce pode pedir ao proprio Claude para fazer. Use os prompts abaixo — eles incluem **verificacao de integridade** para que o Claude confira se os caminhos e metodos ainda existem antes de alterar.
+
+### Prompt para ATIVAR logging
+
+```
+Leia o arquivo .claude/settings.local.json e localize o comando do hook UserPromptSubmit
+que executa o synapse-engine.cjs. Antes de modificar, verifique:
+
+1. O arquivo .claude/hooks/synapse-engine.cjs existe
+2. Ele contem as funcoes rwHooksLog() e rwSynapseTrace()
+3. O comando atual no settings.local.json aponta para o caminho correto
+
+Se todas as verificacoes passarem, atualize o comando para:
+"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
+
+Se qualquer verificacao falhar, reporte o que mudou e sugira o fix correto em vez de
+aplicar a edicao cegamente.
+```
+
+### Prompt para DESATIVAR logging
+
+```
+Leia o arquivo .claude/settings.local.json e localize o comando do hook UserPromptSubmit.
+Verifique que .claude/hooks/synapse-engine.cjs existe e o caminho no comando esta correto.
+
+Se verificado, atualize o comando para:
+"command": "node .claude/hooks/synapse-engine.cjs"
+
+Se o caminho ou estrutura mudou, reporte a discrepancia antes de editar.
+```
+
+### Por que a verificacao de integridade importa
+
+O framework AIOX evolui entre sessoes. Arquivos podem ser renomeados, metodos refatorados, ou o registro de hooks reestruturado. Os prompts acima forcam o Claude a:
+
+1. **Verificar existencia do arquivo** — confirmar que `synapse-engine.cjs` ainda esta no caminho esperado
+2. **Verificar assinaturas dos metodos** — confirmar que `rwHooksLog()` e `rwSynapseTrace()` ainda existem no source
+3. **Verificar estrutura do settings** — confirmar que o hook `UserPromptSubmit` ainda esta registrado no `settings.local.json`
+4. **Reportar antes de agir** — se algo mudou, o Claude explica a discrepancia em vez de aplicar uma edicao quebrada
 
 ## Repositorio Original
 
