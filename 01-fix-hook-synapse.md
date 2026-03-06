@@ -170,7 +170,7 @@ Os hooks devem estar registrados em `.claude/settings.local.json`:
 "command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
 ```
 
-Para bugs conhecidos nos hooks, veja `fix-hooks-bugs.md`.
+Para bugs conhecidos nos hooks, veja `02-fix-hooks-bugs.md`.
 
 ---
 

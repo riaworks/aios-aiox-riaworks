@@ -33,14 +33,14 @@ This repository contains the applied fixes and two logging systems created by RI
 
 | File | Description |
 |------|-------------|
-| [`fix-hook-synapse.md`](./fix-hook-synapse.md) | SYNAPSE setup and installation guide. How to obtain the `.synapse/` directory from the [official AIOX repository](https://github.com/SynkraAI/aiox-core), expected directory structure, hook configuration, and diagnostics. |
+| [`01-fix-hook-synapse.md`](./01-fix-hook-synapse.md) | SYNAPSE setup and installation guide. How to obtain the `.synapse/` directory from the [official AIOX repository](https://github.com/SynkraAI/aiox-core), expected directory structure, hook configuration, and diagnostics. |
 
 ### Fixes
 
 | File | Description |
 |------|-------------|
-| [`fix-hooks-bugs.md`](./fix-hooks-bugs.md) | 7 bugs fixed in Claude Code hooks: wrong registration in settings.json, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths incompatible across IDEs, 10ms timeout, and PreCompact runner not found. |
-| [`fix-windows-json-escape.md`](./fix-windows-json-escape.md) | Fix for an intermittent bug where Claude Code sends Windows paths without escaping backslashes in JSON (`C:\dir` instead of `C:\\dir`), causing `JSON.parse()` failure and SYNAPSE rules loss on that prompt. |
+| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 7 bugs fixed in Claude Code hooks: wrong registration in settings.json, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths incompatible across IDEs, 10ms timeout, and PreCompact runner not found. |
+| [`03-fix-windows-json-escape.md`](./03-fix-windows-json-escape.md) | Fix for an intermittent bug where Claude Code sends Windows paths without escaping backslashes in JSON (`C:\dir` instead of `C:\\dir`), causing `JSON.parse()` failure and SYNAPSE rules loss on that prompt. |
 
 ### Logging (RIAWORKS Extensions)
 

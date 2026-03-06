@@ -4,7 +4,7 @@
 **Plataforma:** Windows 11, Claude Code v2.1.63+, Node 22.x
 **Contexto:** Claude Code executa hooks via stdin/stdout JSON protocol. Bugs nesse fluxo causam perda de injecao de regras SYNAPSE.
 
-> **O que e o SYNAPSE, como instalar e configurar:** veja `fix-hook-synapse.md`
+> **O que e o SYNAPSE, como instalar e configurar:** veja `01-fix-hook-synapse.md`
 
 ---
 
