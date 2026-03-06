@@ -143,6 +143,195 @@ O framework AIOX evolui entre sessoes. Arquivos podem ser renomeados, metodos re
 3. **Verificar estrutura do settings** — confirmar que o hook `UserPromptSubmit` ainda esta registrado no `settings.local.json`
 4. **Reportar antes de agir** — se algo mudou, o Claude explica a discrepancia em vez de aplicar uma edicao quebrada
 
+---
+
+## Self-Service: Prompt para o Claude Aplicar Todos os Fixes e Logging
+
+Copie o prompt abaixo e cole no Claude Code para que ele aplique todos os 8 bug fixes e os dois sistemas de logging no seu projeto AIOS/AIOX. O prompt inclui verificacao de integridade em cada etapa.
+
+> **Pre-requisitos:** Seu projeto precisa ter a estrutura de hooks AIOX (`.claude/hooks/`, `.aiox-core/core/synapse/`, `.claude/settings.local.json`).
+
+### Prompt Completo de Aplicacao
+
+````
+Preciso que voce aplique todos os fixes e extensoes de logging RIAWORKS neste projeto AIOS/AIOX.
+Leia a documentacao abaixo, verifique cada arquivo alvo antes de editar, e aplique cada fix.
+
+## FASE 1 — VERIFICACAO DE INTEGRIDADE (somente leitura, NAO edite ainda)
+
+Leia esses arquivos e confirme que existem. Reporte o estado atual:
+
+1. `.claude/settings.local.json` — verifique se hooks.UserPromptSubmit existe
+2. `.claude/hooks/synapse-engine.cjs` — verifique se readStdin() e main() existem
+3. `.aiox-core/core/synapse/runtime/hook-runtime.js` — verifique se buildHookOutput() existe
+4. `.claude/hooks/code-intel-pretool.cjs` — verifique se referencia .aios-core ou .aiox-core
+5. `.claude/hooks/precompact-session-digest.cjs` — verifique se existe
+
+Para cada arquivo, reporte:
+- EXISTE: sim/nao
+- FUNCOES CHAVE ENCONTRADAS: liste-as
+- JA CORRIGIDO: sim/nao (verifique se os fixes abaixo ja foram aplicados)
+
+NAO prossiga para a Fase 2 ate reportar todos os achados e eu confirmar.
+
+## FASE 2 — APLICAR FIXES (edite somente apos confirmacao da Fase 1)
+
+### Fix 1: Registro de hooks no settings.local.json
+Em `.claude/settings.local.json`, garanta que hooks estao registrados corretamente:
+- `UserPromptSubmit` deve executar APENAS `synapse-engine.cjs`
+- `PreCompact` deve executar APENAS `precompact-session-digest.cjs`
+- `PreToolUse` com matcher `Write|Edit` deve executar `code-intel-pretool.cjs`
+- Todos os comandos devem usar paths RELATIVOS (ex: `node .claude/hooks/synapse-engine.cjs`)
+- NENHUM campo `timeout` em nenhum hook
+- NENHUM `${CLAUDE_PROJECT_DIR}` em nenhum path
+
+### Fix 2: hookEventName no buildHookOutput
+Em `.aiox-core/core/synapse/runtime/hook-runtime.js`, encontre `buildHookOutput()`.
+Adicione `hookEventName: 'UserPromptSubmit'` dentro de `hookSpecificOutput` se ausente:
+```javascript
+hookSpecificOutput: {
+  hookEventName: 'UserPromptSubmit',
+  additionalContext: xml || '',
+},
+```
+
+### Fix 3: Remover process.exit() no synapse-engine.cjs
+Em `.claude/hooks/synapse-engine.cjs`, encontre a chamada main() no final do arquivo.
+Substitua:
+```javascript
+main().then(() => process.exit(0));
+```
+Por:
+```javascript
+main().then(() => {}).catch(() => {});
+```
+
+### Fix 4: Fallback createSession() no hook-runtime.js
+Em `.aiox-core/core/synapse/runtime/hook-runtime.js`, encontre onde loadSession() e chamada.
+Garanta que existe fallback para createSession() quando loadSession retorna null:
+```javascript
+let session = loadSession(sessionId, sessionsDir);
+if (!session && sessionId) {
+  session = createSession(sessionId, cwd, sessionsDir);
+}
+```
+
+### Fix 5: Corrigir path .aios-core no code-intel-pretool.cjs
+Em `.claude/hooks/code-intel-pretool.cjs`, substitua qualquer referencia a `.aios-core` por `.aiox-core`.
+
+### Fix 6: Remover timeout do settings
+Em `.claude/settings.local.json`, remova qualquer campo `"timeout": 10` ou similar das definicoes de hooks.
+
+### Fix 7: Verificar runner do PreCompact
+Verifique se `.aiox-core/hooks/unified/runners/precompact-runner.js` existe.
+Se nao, verifique se `bin/utils/pro-detector.js` existe.
+Reporte o que encontrou — NAO crie arquivos que nao existem no source.
+
+### Fix 8: sanitizeJsonString() para escape JSON no Windows
+Em `.claude/hooks/synapse-engine.cjs`, adicione esta funcao se nao existir:
+```javascript
+function sanitizeJsonString(raw) {
+  return raw.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+}
+```
+Depois em `readStdin()`, envolva JSON.parse em try-catch com fallback:
+```javascript
+try {
+  return JSON.parse(data);
+} catch (e) {
+  try {
+    return JSON.parse(sanitizeJsonString(data));
+  } catch (e2) {
+    throw e; // joga o erro original
+  }
+}
+```
+
+## FASE 3 — APLICAR EXTENSOES DE LOGGING
+
+### rwHooksLog() no hook-runtime.js
+Em `.aiox-core/core/synapse/runtime/hook-runtime.js`, adicione esta funcao se nao existir:
+```javascript
+function rwHooksLog(cwd, level, message) {
+  if (process.env.RW_HOOKS_LOG !== '1') return;
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logsDir = path.join(cwd, '.logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+      fs.writeFileSync(path.join(logsDir, '.gitignore'), '*\n');
+    }
+    const timestamp = new Date().toISOString();
+    const line = `[${timestamp}] [${level}] ${message}\n`;
+    fs.appendFileSync(path.join(logsDir, 'hook-ops.log'), line);
+  } catch (_) { /* fire-and-forget */ }
+}
+```
+Chame nos pontos chave: apos session criada, apos runtime resolvido, em erros.
+
+### rwSynapseTrace() no synapse-engine.cjs
+Em `.claude/hooks/synapse-engine.cjs`, adicione esta funcao se nao existir:
+```javascript
+function rwSynapseTrace(cwd, { prompt, sessionId, bracket, xml }) {
+  if (process.env.RW_SYNAPSE_TRACE !== '1') return;
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logsDir = path.join(cwd, '.logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+      fs.writeFileSync(path.join(logsDir, '.gitignore'), '*\n');
+    }
+    const timestamp = new Date().toISOString();
+    const sep = '='.repeat(80);
+    const entry = [
+      sep,
+      `[${timestamp}] USER PROMPT`,
+      sep,
+      prompt || '(empty)',
+      '',
+      `[${timestamp}] SESSION ID: ${sessionId || '(none)'}`,
+      `[${timestamp}] BRACKET: ${bracket || '(unknown)'}`,
+      '',
+      sep,
+      `[${timestamp}] SYNAPSE OUTPUT (injected as additionalContext)`,
+      sep,
+      xml || '(empty)',
+      '',
+    ].join('\n');
+    fs.appendFileSync(path.join(logsDir, 'synapse-trace.log'), entry);
+  } catch (_) { /* fire-and-forget */ }
+}
+```
+Chame apos o SYNAPSE engine gerar o XML de output.
+
+## FASE 4 — VALIDACAO
+
+Apos todas as edicoes, execute este comando de verificacao:
+```bash
+echo '{"prompt":"test","session_id":"verify","cwd":"'$(pwd)'"}' \
+  | node .claude/hooks/synapse-engine.cjs 2>/dev/null \
+  | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log('hookEventName:',j.hookSpecificOutput?.hookEventName);console.log('rules:',j.hookSpecificOutput?.additionalContext?.includes('CONSTITUTION')?'YES':'NO');console.log('STATUS: OK');}catch(e){console.log('STATUS: FAIL',e.message);}})"
+```
+
+Saida esperada:
+```
+hookEventName: UserPromptSubmit
+rules: YES
+STATUS: OK
+```
+
+Reporte o resultado. Se FAIL, diagnostique usando a mensagem de erro e corrija antes de finalizar.
+
+## REGRAS
+- NAO pule a Fase 1. Verificacao de integridade e obrigatoria.
+- NAO crie arquivos que nao existem — apenas modifique os existentes.
+- Se um fix JA FOI APLICADO, pule e reporte "ja corrigido".
+- Se um arquivo alvo NAO EXISTE ou sua estrutura mudou, reporte a discrepancia e pergunte antes de prosseguir.
+- Apos a Fase 4, crie o diretorio `.logs/` com um `.gitignore` contendo `*` se nao existir.
+````
+
 ## Repositorio Original
 
 - **AIOS Core:** [github.com/synkra-ai/aios-core](https://github.com/synkra-ai/aios-core)
