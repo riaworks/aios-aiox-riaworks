@@ -1,10 +1,14 @@
 # AIOS-AIOX-RIAWORKS
 
-Fixes e extensoes RIAWORKS para o sistema de hooks do [Synkra AIOS](https://github.com/synkra-ai/aios-core) / AIOX, focados em contexto no Claude Code.
+> Fixes e extensoes RIAWORKS para o sistema de hooks do [Synkra AIOS](https://github.com/synkra-ai/aios-core) / AIOX, focados em contexto no Claude Code.
 
-## Contexto
+**[Read in English](./README.md)**
 
-O AIOS usa hooks do Claude Code para injetar regras SYNAPSE (coding standards, constitution, dominio) a cada prompt. No repositorio original, esses hooks tem bugs documentados que causam perda silenciosa de contexto — o Claude Code opera sem regras de projeto sem nenhum aviso.
+---
+
+## Visao Geral
+
+O AIOS usa hooks do Claude Code para injetar regras SYNAPSE (coding standards, constitution, dominio) a cada prompt. No repositorio original, esses hooks tem bugs documentados que causam **perda silenciosa de contexto** — o Claude Code opera sem regras de projeto sem nenhum aviso.
 
 Este repositorio contem os fixes aplicados e dois sistemas de logging criados pela RIAWORKS para diagnosticar e rastrear a injecao de contexto.
 
@@ -14,15 +18,15 @@ Este repositorio contem os fixes aplicados e dois sistemas de logging criados pe
 
 | Arquivo | Descricao |
 |---------|-----------|
-| `fix-hooks-bugs.md` | 7 bugs corrigidos nos hooks do Claude Code: registration errada no settings.json, `hookEventName` ausente, `process.exit()` matando stdout no Windows, sessions nao persistidas, paths absolutos incompativeis, timeout de 10ms, e runner do PreCompact nao encontrado. |
-| `fix-windows-json-escape.md` | Fix para bug intermitente onde o Claude Code envia paths Windows sem escapar backslashes no JSON (`C:\dir` em vez de `C:\\dir`), causando falha no `JSON.parse()` e perda de regras SYNAPSE naquele prompt. |
+| [`fix-hooks-bugs.md`](./fix-hooks-bugs.md) | 7 bugs corrigidos nos hooks do Claude Code: registration errada no settings.json, `hookEventName` ausente, `process.exit()` matando stdout no Windows, sessions nao persistidas, paths absolutos incompativeis, timeout de 10ms, e runner do PreCompact nao encontrado. |
+| [`fix-windows-json-escape.md`](./fix-windows-json-escape.md) | Fix para bug intermitente onde o Claude Code envia paths Windows sem escapar backslashes no JSON (`C:\dir` em vez de `C:\\dir`), causando falha no `JSON.parse()` e perda de regras SYNAPSE naquele prompt. |
 
 ### Logging (extensoes RIAWORKS)
 
 | Arquivo | Descricao |
 |---------|-----------|
-| `rw-hooks-log.md` | Documentacao do `rwHooksLog()` — log operacional leve que registra status de execucao dos hooks (session criada, runtime resolvido, erros). Ativado via `RW_HOOKS_LOG=1`. Grava em `.logs/hook-ops.log`. |
-| `rw-synapse-trace.md` | Documentacao do `rwSynapseTrace()` — trace detalhado que registra o prompt do usuario, session ID, bracket e o XML completo injetado como `additionalContext`. Ativado via `RW_SYNAPSE_TRACE=1`. Grava em `.logs/synapse-trace.log`. |
+| [`rw-hooks-log.md`](./rw-hooks-log.md) | Documentacao do `rwHooksLog()` — log operacional leve que registra status de execucao dos hooks (session criada, runtime resolvido, erros). Ativado via `RW_HOOKS_LOG=1`. Grava em `.logs/hook-ops.log`. |
+| [`rw-synapse-trace.md`](./rw-synapse-trace.md) | Documentacao do `rwSynapseTrace()` — trace detalhado que registra o prompt do usuario, session ID, bracket e o XML completo injetado como `additionalContext`. Ativado via `RW_SYNAPSE_TRACE=1`. Grava em `.logs/synapse-trace.log`. |
 
 ## Nomenclatura
 
@@ -44,6 +48,20 @@ Todas as extensoes RIAWORKS usam prefixo `rw` para diferenciacao do codigo origi
 | `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copiado do fork com paths adaptados |
 | `bin/utils/pro-detector.js` | Dependencia do precompact runner |
 | `.logs/` | Diretorio criado com `.gitignore` |
+
+## Inicio Rapido
+
+```bash
+# Ativar log de execucao dos hooks
+export RW_HOOKS_LOG=1
+
+# Ativar trace de injecao SYNAPSE
+export RW_SYNAPSE_TRACE=1
+
+# Acompanhar logs em tempo real
+tail -f .logs/hook-ops.log
+tail -f .logs/synapse-trace.log
+```
 
 ## Repositorio Original
 
