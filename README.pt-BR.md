@@ -8,6 +8,9 @@
 
 - [Visao Geral](#visao-geral)
 - [Arquivos](#arquivos)
+  - [Setup e Instalacao](#setup-e-instalacao)
+  - [Fixes](#fixes)
+  - [Logging](#logging-extensoes-riaworks)
 - [Nomenclatura](#nomenclatura)
 - [Arquivos modificados no projeto](#arquivos-modificados-no-projeto)
 - [Ativacao](#ativacao)
@@ -26,6 +29,12 @@ Este repositorio contem os fixes aplicados e dois sistemas de logging criados pe
 
 ## Arquivos
 
+### Setup e Instalacao
+
+| Arquivo | Descricao |
+|---------|-----------|
+| [`fix-hook-synapse.md`](./fix-hook-synapse.md) | Guia de setup e instalacao do SYNAPSE. Como obter o diretorio `.synapse/` do [repositorio oficial do AIOX](https://github.com/SynkraAI/aiox-core), estrutura esperada, configuracao dos hooks e diagnostico. |
+
 ### Fixes
 
 | Arquivo | Descricao |
@@ -39,6 +48,8 @@ Este repositorio contem os fixes aplicados e dois sistemas de logging criados pe
 |---------|-----------|
 | [`rw-hooks-log.md`](./rw-hooks-log.md) | Documentacao do `rwHooksLog()` — log operacional leve que registra status de execucao dos hooks (session criada, runtime resolvido, erros). Ativado via `RW_HOOKS_LOG=1`. Grava em `.logs/rw-hooks-log.log`. |
 | [`rw-synapse-trace.md`](./rw-synapse-trace.md) | Documentacao do `rwSynapseTrace()` — trace detalhado que registra o prompt do usuario, session ID, bracket e o XML completo injetado como `additionalContext`. Ativado via `RW_SYNAPSE_TRACE=1`. Grava em `.logs/rw-synapse-trace.log`. |
+| [`rw-context-log-full.md`](./rw-context-log-full.md) | Documentacao do `rwContextLogFull()` — log unificado que captura prompt do usuario, injecao SYNAPSE e listagem de arquivos de contexto estatico em uma unica entrada. Ativado via `RW_CONTEXT_LOG_FULL=1`. Grava em `.logs/rw-context-log-full.log`. |
+| [`rw-intel-context-log.md`](./rw-intel-context-log.md) | Documentacao do `rwIntelContextLog()` — log de injecoes code-intel no PreToolUse (contexto de analise de arquivo em Write/Edit). Ativado via `RW_INTEL_CONTEXT_LOG=1`. Grava em `.logs/rw-intel-context-log.log`. |
 
 ## Nomenclatura
 
@@ -48,6 +59,8 @@ Todas as extensoes RIAWORKS usam prefixo `rw` para diferenciacao do codigo origi
 |--------|---------|---------------|
 | `rwHooksLog()` | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` |
 | `rwSynapseTrace()` | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` |
+| `rwContextLogFull()` | `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-context-log-full.log` |
+| `rwIntelContextLog()` | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` |
 
 ## Arquivos modificados no projeto
 

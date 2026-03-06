@@ -4,33 +4,7 @@
 **Plataforma:** Windows 11, Claude Code v2.1.63+, Node 22.x
 **Contexto:** Claude Code executa hooks via stdin/stdout JSON protocol. Bugs nesse fluxo causam perda de injecao de regras SYNAPSE.
 
----
-
-## O que e o SYNAPSE e por que ele depende de hooks
-
-O SYNAPSE e o motor de contexto do AIOX. Ele injeta regras (coding standards, constitution, dominio) no Claude Code a cada prompt via hook `UserPromptSubmit`.
-
-**Fluxo normal:**
-```
-Usuario digita prompt
-       |
-       v
-Claude Code dispara UserPromptSubmit hook
-       |
-       v
-synapse-engine.cjs le stdin JSON, chama SynapseEngine
-       |
-       v
-SynapseEngine gera <synapse-rules> XML
-       |
-       v
-synapse-engine.cjs escreve JSON no stdout
-       |
-       v
-Claude Code injeta XML como additionalContext
-```
-
-**Quando o hook falha**, o Claude Code nao recebe as regras SYNAPSE e opera sem contexto de projeto — ignora conventions, constitution, dominio, etc.
+> **O que e o SYNAPSE, como instalar e configurar:** veja `fix-hook-synapse.md`
 
 ---
 
@@ -162,7 +136,7 @@ if (!session && sessionId) {
 ## Verificacao
 
 ```bash
-echo '{"prompt":"test","session_id":"verify","cwd":"C:/_sistemas/MEU-PROJETO"}' \
+echo '{"prompt":"test","session_id":"verify","cwd":"DIR-MEU-PROJETO"}' \
   | node .claude/hooks/synapse-engine.cjs 2>/dev/null \
   | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log('hookEventName:',j.hookSpecificOutput?.hookEventName);console.log('rules:',j.hookSpecificOutput?.additionalContext?.includes('CONSTITUTION')?'YES':'NO');console.log('STATUS: OK');}catch(e){console.log('STATUS: FAIL',e.message);}})"
 ```
