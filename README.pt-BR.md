@@ -1,6 +1,6 @@
 # AIOS-AIOX-RIAWORKS
 
-> Fixes e extensoes RIAWORKS para o sistema de hooks do [Synkra AIOS](https://github.com/synkra-ai/aios-core) / AIOX, focados em contexto no Claude Code.
+> Fixes e extensoes RIAWORKS para o sistema de hooks do [Synkra AIOX](https://github.com/SynkraAI/aiox-core), focados em contexto no Claude Code.
 
 **[Read in English](./README.md)**
 
@@ -334,8 +334,8 @@ Reporte o resultado. Se FAIL, diagnostique usando a mensagem de erro e corrija a
 
 ## Repositorio Original
 
-- **AIOS Core:** [github.com/synkra-ai/aios-core](https://github.com/synkra-ai/aios-core)
-- **AIOX** e o fork interno que estende o AIOS com orquestracao multi-agente
+- **AIOX Core:** [github.com/SynkraAI/aiox-core](https://github.com/SynkraAI/aiox-core)
+- **AIOX** e o AI-Orchestrated System for Full Stack Development da Synkra AI
 
 ## Licenca
 
