@@ -4,11 +4,23 @@
 
 **[Leia em Portugues (pt-BR)](./README.pt-BR.md)**
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Files](#files)
+- [Naming Convention](#naming-convention)
+- [Modified Files in the Project](#modified-files-in-the-project)
+- [Activation](#activation)
+- [Prompt: Apply All Fixes and Logging](#self-service-prompt-for-claude-to-apply-all-fixes-and-logging)
+- [Prompt: Toggle Logging](#self-service-prompt-for-claude-to-toggle-logging)
+- [Original Repository](#original-repository)
+- [License](#license)
+
 ---
 
 ## Overview
 
-AIOS uses Claude Code hooks to inject SYNAPSE rules (coding standards, constitution, domain context) on every prompt. In the original repository, these hooks have documented bugs that cause **silent context loss** — Claude Code operates without project rules with no warning.
+AIOX uses Claude Code hooks to inject SYNAPSE rules (coding standards, constitution, domain context) on every prompt. In the original repository, these hooks have documented bugs that cause **silent context loss** — Claude Code operates without project rules with no warning.
 
 This repository contains the applied fixes and two logging systems created by RIAWORKS to diagnose and trace context injection.
 
@@ -101,60 +113,16 @@ Remove the env var prefixes from the command, leaving only:
 
 ---
 
-## Self-Service: Prompt for Claude to Toggle Logging
-
-Since the activation requires editing `settings.local.json`, you can ask Claude itself to do it. Use the prompts below — they include **integrity verification** so Claude checks if file paths and method signatures still match before making changes.
-
-### Prompt to ENABLE logging
-
-```
-Read the file .claude/settings.local.json and locate the UserPromptSubmit hook command
-that runs synapse-engine.cjs. Before modifying, verify:
-
-1. The file .claude/hooks/synapse-engine.cjs exists
-2. It contains the functions rwHooksLog() and rwSynapseTrace()
-3. The current command in settings.local.json points to the correct path
-
-If all checks pass, update the command to:
-"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
-
-If any check fails, report what changed and suggest the correct fix instead of
-blindly applying the edit.
-```
-
-### Prompt to DISABLE logging
-
-```
-Read the file .claude/settings.local.json and locate the UserPromptSubmit hook command.
-Verify that .claude/hooks/synapse-engine.cjs exists and the command path is correct.
-
-If verified, update the command to:
-"command": "node .claude/hooks/synapse-engine.cjs"
-
-If the file path or structure has changed, report the discrepancy before editing.
-```
-
-### Why integrity checks matter
-
-The AIOX framework evolves across sessions. Files may be renamed, methods refactored, or hook registration restructured. The prompts above force Claude to:
-
-1. **Verify file existence** — confirm `synapse-engine.cjs` is still at the expected path
-2. **Verify method signatures** — confirm `rwHooksLog()` and `rwSynapseTrace()` still exist in the source
-3. **Verify settings structure** — confirm `UserPromptSubmit` hook is still registered in `settings.local.json`
-4. **Report before acting** — if anything changed, Claude explains the discrepancy instead of applying a broken edit
-
----
-
 ## Self-Service: Prompt for Claude to Apply All Fixes and Logging
 
-Copy the prompt below and paste it in Claude Code to have it apply all 8 bug fixes and both logging systems to your AIOS/AIOX project. The prompt includes integrity verification at every step.
+Copy the prompt below and paste it in Claude Code to have it apply all 8 bug fixes and both logging systems to your AIOX project. The prompt includes integrity verification at every step.
 
 > **Prerequisites:** Your project must have the AIOX hook structure (`.claude/hooks/`, `.aiox-core/core/synapse/`, `.claude/settings.local.json`).
 
 ### Full Apply Prompt
 
 ````
-I need you to apply all RIAWORKS fixes and logging extensions to this AIOS/AIOX project.
+I need you to apply all RIAWORKS fixes and logging extensions to this AIOX project.
 Read the documentation below, verify every target file before editing, and apply each fix.
 
 ## PHASE 1 — INTEGRITY CHECK (read-only, do NOT edit yet)
@@ -331,6 +299,52 @@ Report the result. If FAIL, diagnose using the error message and fix before fini
 - If a target file is MISSING or its structure changed, report the discrepancy and ask before proceeding.
 - After Phase 4, create `.logs/` directory with a `.gitignore` containing `*` if it doesn't exist.
 ````
+
+---
+
+## Self-Service: Prompt for Claude to Toggle Logging
+
+After the fixes are installed, you can ask Claude to enable or disable the logging. The prompts below include **integrity verification** so Claude checks if file paths and method signatures still match before making changes.
+
+### Prompt to ENABLE logging
+
+```
+Read the file .claude/settings.local.json and locate the UserPromptSubmit hook command
+that runs synapse-engine.cjs. Before modifying, verify:
+
+1. The file .claude/hooks/synapse-engine.cjs exists
+2. It contains the functions rwHooksLog() and rwSynapseTrace()
+3. The current command in settings.local.json points to the correct path
+
+If all checks pass, update the command to:
+"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
+
+If any check fails, report what changed and suggest the correct fix instead of
+blindly applying the edit.
+```
+
+### Prompt to DISABLE logging
+
+```
+Read the file .claude/settings.local.json and locate the UserPromptSubmit hook command.
+Verify that .claude/hooks/synapse-engine.cjs exists and the command path is correct.
+
+If verified, update the command to:
+"command": "node .claude/hooks/synapse-engine.cjs"
+
+If the file path or structure has changed, report the discrepancy before editing.
+```
+
+### Why integrity checks matter
+
+The AIOX framework evolves across sessions. Files may be renamed, methods refactored, or hook registration restructured. The prompts above force Claude to:
+
+1. **Verify file existence** — confirm `synapse-engine.cjs` is still at the expected path
+2. **Verify method signatures** — confirm `rwHooksLog()` and `rwSynapseTrace()` still exist in the source
+3. **Verify settings structure** — confirm `UserPromptSubmit` hook is still registered in `settings.local.json`
+4. **Report before acting** — if anything changed, Claude explains the discrepancy instead of applying a broken edit
+
+---
 
 ## Original Repository
 

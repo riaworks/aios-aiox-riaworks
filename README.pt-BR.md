@@ -4,11 +4,23 @@
 
 **[Read in English](./README.md)**
 
+## Indice
+
+- [Visao Geral](#visao-geral)
+- [Arquivos](#arquivos)
+- [Nomenclatura](#nomenclatura)
+- [Arquivos modificados no projeto](#arquivos-modificados-no-projeto)
+- [Ativacao](#ativacao)
+- [Prompt: Aplicar Todos os Fixes e Logging](#self-service-prompt-para-o-claude-aplicar-todos-os-fixes-e-logging)
+- [Prompt: Ativar/Desativar Logging](#self-service-prompt-para-o-claude-ativardesativar-o-logging)
+- [Repositorio Original](#repositorio-original)
+- [Licenca](#licenca)
+
 ---
 
 ## Visao Geral
 
-O AIOS usa hooks do Claude Code para injetar regras SYNAPSE (coding standards, constitution, dominio) a cada prompt. No repositorio original, esses hooks tem bugs documentados que causam **perda silenciosa de contexto** — o Claude Code opera sem regras de projeto sem nenhum aviso.
+O AIOX usa hooks do Claude Code para injetar regras SYNAPSE (coding standards, constitution, dominio) a cada prompt. No repositorio original, esses hooks tem bugs documentados que causam **perda silenciosa de contexto** — o Claude Code opera sem regras de projeto sem nenhum aviso.
 
 Este repositorio contem os fixes aplicados e dois sistemas de logging criados pela RIAWORKS para diagnosticar e rastrear a injecao de contexto.
 
@@ -101,60 +113,16 @@ Remova os prefixos de env var do comando, deixando apenas:
 
 ---
 
-## Self-Service: Prompt para o Claude ativar/desativar o logging
-
-Como a ativacao requer editar o `settings.local.json`, voce pode pedir ao proprio Claude para fazer. Use os prompts abaixo — eles incluem **verificacao de integridade** para que o Claude confira se os caminhos e metodos ainda existem antes de alterar.
-
-### Prompt para ATIVAR logging
-
-```
-Leia o arquivo .claude/settings.local.json e localize o comando do hook UserPromptSubmit
-que executa o synapse-engine.cjs. Antes de modificar, verifique:
-
-1. O arquivo .claude/hooks/synapse-engine.cjs existe
-2. Ele contem as funcoes rwHooksLog() e rwSynapseTrace()
-3. O comando atual no settings.local.json aponta para o caminho correto
-
-Se todas as verificacoes passarem, atualize o comando para:
-"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
-
-Se qualquer verificacao falhar, reporte o que mudou e sugira o fix correto em vez de
-aplicar a edicao cegamente.
-```
-
-### Prompt para DESATIVAR logging
-
-```
-Leia o arquivo .claude/settings.local.json e localize o comando do hook UserPromptSubmit.
-Verifique que .claude/hooks/synapse-engine.cjs existe e o caminho no comando esta correto.
-
-Se verificado, atualize o comando para:
-"command": "node .claude/hooks/synapse-engine.cjs"
-
-Se o caminho ou estrutura mudou, reporte a discrepancia antes de editar.
-```
-
-### Por que a verificacao de integridade importa
-
-O framework AIOX evolui entre sessoes. Arquivos podem ser renomeados, metodos refatorados, ou o registro de hooks reestruturado. Os prompts acima forcam o Claude a:
-
-1. **Verificar existencia do arquivo** — confirmar que `synapse-engine.cjs` ainda esta no caminho esperado
-2. **Verificar assinaturas dos metodos** — confirmar que `rwHooksLog()` e `rwSynapseTrace()` ainda existem no source
-3. **Verificar estrutura do settings** — confirmar que o hook `UserPromptSubmit` ainda esta registrado no `settings.local.json`
-4. **Reportar antes de agir** — se algo mudou, o Claude explica a discrepancia em vez de aplicar uma edicao quebrada
-
----
-
 ## Self-Service: Prompt para o Claude Aplicar Todos os Fixes e Logging
 
-Copie o prompt abaixo e cole no Claude Code para que ele aplique todos os 8 bug fixes e os dois sistemas de logging no seu projeto AIOS/AIOX. O prompt inclui verificacao de integridade em cada etapa.
+Copie o prompt abaixo e cole no Claude Code para que ele aplique todos os 8 bug fixes e os dois sistemas de logging no seu projeto AIOX. O prompt inclui verificacao de integridade em cada etapa.
 
 > **Pre-requisitos:** Seu projeto precisa ter a estrutura de hooks AIOX (`.claude/hooks/`, `.aiox-core/core/synapse/`, `.claude/settings.local.json`).
 
 ### Prompt Completo de Aplicacao
 
 ````
-Preciso que voce aplique todos os fixes e extensoes de logging RIAWORKS neste projeto AIOS/AIOX.
+Preciso que voce aplique todos os fixes e extensoes de logging RIAWORKS neste projeto AIOX.
 Leia a documentacao abaixo, verifique cada arquivo alvo antes de editar, e aplique cada fix.
 
 ## FASE 1 — VERIFICACAO DE INTEGRIDADE (somente leitura, NAO edite ainda)
@@ -331,6 +299,52 @@ Reporte o resultado. Se FAIL, diagnostique usando a mensagem de erro e corrija a
 - Se um arquivo alvo NAO EXISTE ou sua estrutura mudou, reporte a discrepancia e pergunte antes de prosseguir.
 - Apos a Fase 4, crie o diretorio `.logs/` com um `.gitignore` contendo `*` se nao existir.
 ````
+
+---
+
+## Self-Service: Prompt para o Claude ativar/desativar o logging
+
+Apos os fixes estarem instalados, voce pode pedir ao Claude para ativar ou desativar o logging. Os prompts abaixo incluem **verificacao de integridade** para que o Claude confira se os caminhos e metodos ainda existem antes de alterar.
+
+### Prompt para ATIVAR logging
+
+```
+Leia o arquivo .claude/settings.local.json e localize o comando do hook UserPromptSubmit
+que executa o synapse-engine.cjs. Antes de modificar, verifique:
+
+1. O arquivo .claude/hooks/synapse-engine.cjs existe
+2. Ele contem as funcoes rwHooksLog() e rwSynapseTrace()
+3. O comando atual no settings.local.json aponta para o caminho correto
+
+Se todas as verificacoes passarem, atualize o comando para:
+"command": "RW_HOOKS_LOG=1 RW_SYNAPSE_TRACE=1 node .claude/hooks/synapse-engine.cjs"
+
+Se qualquer verificacao falhar, reporte o que mudou e sugira o fix correto em vez de
+aplicar a edicao cegamente.
+```
+
+### Prompt para DESATIVAR logging
+
+```
+Leia o arquivo .claude/settings.local.json e localize o comando do hook UserPromptSubmit.
+Verifique que .claude/hooks/synapse-engine.cjs existe e o caminho no comando esta correto.
+
+Se verificado, atualize o comando para:
+"command": "node .claude/hooks/synapse-engine.cjs"
+
+Se o caminho ou estrutura mudou, reporte a discrepancia antes de editar.
+```
+
+### Por que a verificacao de integridade importa
+
+O framework AIOX evolui entre sessoes. Arquivos podem ser renomeados, metodos refatorados, ou o registro de hooks reestruturado. Os prompts acima forcam o Claude a:
+
+1. **Verificar existencia do arquivo** — confirmar que `synapse-engine.cjs` ainda esta no caminho esperado
+2. **Verificar assinaturas dos metodos** — confirmar que `rwHooksLog()` e `rwSynapseTrace()` ainda existem no source
+3. **Verificar estrutura do settings** — confirmar que o hook `UserPromptSubmit` ainda esta registrado no `settings.local.json`
+4. **Reportar antes de agir** — se algo mudou, o Claude explica a discrepancia em vez de aplicar uma edicao quebrada
+
+---
 
 ## Repositorio Original
 
