@@ -1,6 +1,6 @@
 # Fix: Claude Code Hooks — Bugs Conhecidos
 
-**Data:** 2026-03-06
+**Data:** 2026-03-07 (atualizado)
 **Plataforma:** Windows 11, Claude Code v2.1.63+, Node 22.x
 **Contexto:** Claude Code executa hooks via stdin/stdout JSON protocol. Bugs nesse fluxo causam perda de injecao de regras SYNAPSE.
 
@@ -133,6 +133,69 @@ if (!session && sessionId) {
 
 ---
 
+### Bug 8: code-intel-pretool.cjs usa process.exit() (Windows pipe kill)
+
+**Sintoma:** `PreToolUse:Write hook error` ao usar a ferramenta Write ou Edit.
+
+**Causa:** Mesmo problema do Bug 3, mas no hook `code-intel-pretool.cjs`. A funcao `safeExit()` chamava `process.exit(0)` que no Windows mata o pipe stdout antes do Claude Code ler a resposta JSON.
+
+**Fix:** Remover `safeExit()` e `process.exit()`. Usar o mesmo padrao do `synapse-engine.cjs` — deixar Node encerrar naturalmente.
+
+```javascript
+// ERRADO — mata pipe no Windows
+function safeExit(code) {
+  if (process.env.JEST_WORKER_ID) return;
+  process.exit(code);
+}
+function run() {
+  const timer = setTimeout(() => safeExit(0), HOOK_TIMEOUT_MS);
+  timer.unref();
+  main()
+    .then(() => safeExit(0))
+    .catch(() => { safeExit(0); });
+}
+
+// CORRETO — Node encerra sozinho
+function run() {
+  const timer = setTimeout(() => {}, HOOK_TIMEOUT_MS);
+  timer.unref();
+  main()
+    .then(() => {})
+    .catch(() => {});
+}
+```
+
+---
+
+### Bug 9: precompact-runner.js console.log/console.error causa hook error
+
+**Sintoma:** `PreCompact hook error` intermitente.
+
+**Causa:** O `precompact-runner.js` usa `console.log()` e `console.error()` para logging. No protocolo de hooks do Claude Code, qualquer saida em stderr e interpretada como erro, e saida stdout que nao e JSON valido tambem causa problemas.
+
+Linhas problematicas:
+- `console.log('[PreCompact] aiox-pro not available, skipping session digest')` → stdout
+- `console.error('[PreCompact] Digest extractor not found...')` → stderr
+- `console.error('[PreCompact] Digest extraction failed...')` → stderr
+- `console.error('[PreCompact] Hook runner error...')` → stderr
+
+**Fix:** Remover todas as chamadas `console.log()` e `console.error()`. Hooks devem operar silenciosamente — falhas sao graceful degradation.
+
+```javascript
+// ERRADO — stderr dispara "hook error" no Claude Code
+if (!proAvailable) {
+  console.log('[PreCompact] aiox-pro not available, skipping session digest');
+  return;
+}
+
+// CORRETO — silent no-op
+if (!proAvailable) {
+  return; // Graceful degradation - no-op
+}
+```
+
+---
+
 ## Verificacao
 
 ```bash
@@ -158,9 +221,10 @@ STATUS: OK
 | `.aiox-core/core/synapse/runtime/hook-runtime.js` | hookEventName, createSession, rwHooksLog, cleanOrphanTmpFiles |
 | `.claude/hooks/synapse-engine.cjs` | Remover process.exit, sanitizeJsonString, rwSynapseTrace |
 | `.claude/hooks/precompact-session-digest.cjs` | Path do runner corrigido |
-| `.claude/hooks/code-intel-pretool.cjs` | Path .aios-core corrigido para .aiox-core |
+| `.claude/hooks/code-intel-pretool.cjs` | Path .aios-core → .aiox-core, remover process.exit() (Bug 8) |
+| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Remover console.log/console.error (Bug 9) |
 | `.logs/` | Diretorio criado com .gitignore |
 
 ---
 
-*Documentado em 2026-03-06 — RIAWORKS*
+*Documentado em 2026-03-07 — RIAWORKS*

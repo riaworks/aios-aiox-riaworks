@@ -29,7 +29,7 @@
 O AIOX usa hooks do Claude Code para injetar regras SYNAPSE (coding standards, constitution, dominio) a cada prompt. No repositorio original, esses hooks tem bugs documentados que causam **perda silenciosa de contexto** — o Claude Code opera sem regras de projeto sem nenhum aviso.
 
 Este repositorio contem:
-- **8 bug fixes** para o sistema de hooks
+- **10 bug fixes** para o sistema de hooks
 - **4 extensoes de logging** (`rw-*`) para diagnosticar e rastrear a injecao de contexto
 
 ## Pre-requisitos
@@ -76,7 +76,7 @@ git clone https://github.com/riaworks/aios-aiox-riaworks.git
 
 | Arquivo | Descricao |
 |---------|-----------|
-| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 7 bugs corrigidos: registration errada, `hookEventName` ausente, `process.exit()` matando stdout no Windows, sessions nao persistidas, paths absolutos, timeout de 10ms, runner do PreCompact. |
+| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 9 bugs corrigidos: registration errada, `hookEventName` ausente, `process.exit()` matando stdout no Windows, sessions nao persistidas, paths absolutos, timeout de 10ms, runner do PreCompact, `process.exit()` no code-intel-pretool matando pipe, `console.log/error` no PreCompact runner causando hook errors. |
 | [`03-fix-windows-json-escape.md`](./03-fix-windows-json-escape.md) | Fix para falha intermitente de JSON parse no Windows quando o Claude Code envia backslashes sem escape (`C:\dir` em vez de `C:\\dir`). |
 
 ### Logging (extensoes rw-)
@@ -345,7 +345,7 @@ Leia estes arquivos do diretorio `aios-aiox-riaworks/`. Eles contem todos os det
 trechos de codigo e comportamento esperado. NAO invente — use o codigo exato desses arquivos:
 
 1. `aios-aiox-riaworks/01-fix-hook-synapse.md` — Requisitos de setup do SYNAPSE
-2. `aios-aiox-riaworks/02-fix-hooks-bugs.md` — Todos os 7 bug fixes com codigo
+2. `aios-aiox-riaworks/02-fix-hooks-bugs.md` — Todos os 9 bug fixes com codigo
 3. `aios-aiox-riaworks/03-fix-windows-json-escape.md` — Fix de escape JSON com codigo
 4. `aios-aiox-riaworks/rw-hooks-log.md` — Funcao rwHooksLog() e uso
 5. `aios-aiox-riaworks/rw-synapse-trace.md` — Funcao rwSynapseTrace() e uso
@@ -452,8 +452,8 @@ O framework AIOX evolui entre sessoes. Arquivos podem ser renomeados, metodos re
 | `.claude/settings.local.json` | Paths relativos, sem timeout, hooks nos eventos corretos |
 | `.aiox-core/core/synapse/runtime/hook-runtime.js` | `hookEventName`, `createSession()`, `rwHooksLog()`, `cleanOrphanTmpFiles()` |
 | `.claude/hooks/synapse-engine.cjs` | `sanitizeJsonString()`, `rwSynapseTrace()`, `rwContextLogFull()`, remocao de `process.exit()` |
-| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwContextLogFull()` |
-| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copiado do fork com paths adaptados |
+| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwContextLogFull()`, remocao de `process.exit()` (Bug 8) |
+| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copiado do fork com paths adaptados, remocao de `console.log/error` (Bug 9) |
 | `bin/utils/pro-detector.js` | Dependencia do precompact runner |
 | `.logs/` | Diretorio criado com `.gitignore` |
 

@@ -29,7 +29,7 @@
 AIOX uses Claude Code hooks to inject SYNAPSE rules (coding standards, constitution, domain context) on every prompt. In the original repository, these hooks have documented bugs that cause **silent context loss** — Claude Code operates without project rules with no warning.
 
 This repository contains:
-- **8 bug fixes** for the hook system
+- **10 bug fixes** for the hook system
 - **4 logging extensions** (`rw-*`) to diagnose and trace context injection
 
 ## Prerequisites
@@ -76,7 +76,7 @@ git clone https://github.com/riaworks/aios-aiox-riaworks.git
 
 | File | Description |
 |------|-------------|
-| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 7 bugs fixed: wrong hook registration, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths, 10ms timeout, PreCompact runner not found. |
+| [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 9 bugs fixed: wrong hook registration, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths, 10ms timeout, PreCompact runner not found, code-intel-pretool `process.exit()` pipe kill, PreCompact runner `console.log/error` causing hook errors. |
 | [`03-fix-windows-json-escape.md`](./03-fix-windows-json-escape.md) | Fix for intermittent JSON parse failure on Windows when Claude Code sends unescaped backslashes (`C:\dir` instead of `C:\\dir`). |
 
 ### Logging (rw- extensions)
@@ -345,7 +345,7 @@ Read these files from the `aios-aiox-riaworks/` directory. They contain all fix 
 code snippets, and expected behavior. Do NOT guess — use the exact code from these files:
 
 1. `aios-aiox-riaworks/01-fix-hook-synapse.md` — SYNAPSE setup requirements
-2. `aios-aiox-riaworks/02-fix-hooks-bugs.md` — All 7 bug fixes with code
+2. `aios-aiox-riaworks/02-fix-hooks-bugs.md` — All 9 bug fixes with code
 3. `aios-aiox-riaworks/03-fix-windows-json-escape.md` — JSON escape fix with code
 4. `aios-aiox-riaworks/rw-hooks-log.md` — rwHooksLog() function and usage
 5. `aios-aiox-riaworks/rw-synapse-trace.md` — rwSynapseTrace() function and usage
@@ -452,8 +452,8 @@ The AIOX framework evolves across sessions. Files may be renamed, methods refact
 | `.claude/settings.local.json` | Relative paths, no timeout, hooks on correct events |
 | `.aiox-core/core/synapse/runtime/hook-runtime.js` | `hookEventName`, `createSession()`, `rwHooksLog()`, `cleanOrphanTmpFiles()` |
 | `.claude/hooks/synapse-engine.cjs` | `sanitizeJsonString()`, `rwSynapseTrace()`, `rwContextLogFull()`, removal of `process.exit()` |
-| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwContextLogFull()` |
-| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copied from fork with adapted paths |
+| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwContextLogFull()`, removal of `process.exit()` (Bug 8) |
+| `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copied from fork with adapted paths, removal of `console.log/error` (Bug 9) |
 | `bin/utils/pro-detector.js` | Precompact runner dependency |
 | `.logs/` | Directory created with `.gitignore` |
 
