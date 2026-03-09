@@ -78,6 +78,7 @@ git clone https://github.com/riaworks/aios-aiox-riaworks.git
 |------|-------------|
 | [`02-fix-hooks-bugs.md`](./02-fix-hooks-bugs.md) | 9 bugs fixed: wrong hook registration, missing `hookEventName`, `process.exit()` killing stdout on Windows, sessions not persisted, absolute paths, 10ms timeout, PreCompact runner not found, code-intel-pretool `process.exit()` pipe kill, PreCompact runner `console.log/error` causing hook errors. |
 | [`03-fix-windows-json-escape.md`](./03-fix-windows-json-escape.md) | Fix for intermittent JSON parse failure on Windows when Claude Code sends unescaped backslashes (`C:\dir` instead of `C:\\dir`). |
+| [`04-fix-skill-logging.md`](./04-fix-skill-logging.md) | Skill/agent activation logging: captures agent prompts loaded via `/AIOX:agents:{name}` by adding `Skill` to PreToolUse matcher and `rwSkillLog()` to code-intel-pretool.cjs. |
 
 ### Logging (rw- extensions)
 
@@ -100,7 +101,7 @@ All RIAWORKS logging extensions use the `rw-` prefix. There are **4 logs**: 3 in
 |---|-----|---------|----------|------|--------|
 | 1 | **rw-hooks-log** | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` | UserPromptSubmit | Light (~100B/prompt) |
 | 2 | **rw-synapse-trace** | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` | UserPromptSubmit | Heavy (~4KB/prompt) |
-| 3 | **rw-intel-context-log** | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` | PreToolUse (Write/Edit) | Conditional |
+| 3 | **rw-intel-context-log** | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` | PreToolUse (Write/Edit/Skill) | Conditional |
 | 4 | **rw-context-log-full** | `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-context-log-full.log` | Both | Heavy (~5-10KB/prompt) |
 
 ---
@@ -162,11 +163,11 @@ Full documentation: [`rw-synapse-trace.md`](./rw-synapse-trace.md)
 
 **Purpose:** Answers "what code context was injected when the agent edited this file?"
 
-Records the `<code-intel-context>` XML injected on **Write/Edit** operations only. Shows entities, references, and dependencies for the file being edited.
+Records the `<code-intel-context>` XML injected on **Write/Edit** operations and also **agent prompts** loaded via **Skill** activation. Shows entities, references, and dependencies for the file being edited, and the full content of activated agents.
 
-**When to use:** When you suspect code-intel is not providing context for edited files, or want to verify what entity data Claude sees.
+**When to use:** When you suspect code-intel is not providing context for edited files, want to verify what entity data Claude sees, or want to inspect the full prompt of an activated agent.
 
-> **Note:** This log runs on a different hook (`PreToolUse`) than the other two. It only fires when the agent writes or edits a file, not on every prompt.
+> **Note:** This log runs on a different hook (`PreToolUse`) than the other two. It fires when the agent writes/edits a file or when a Skill/agent is activated, not on every prompt.
 
 **Activate individually:**
 ```json
@@ -197,6 +198,7 @@ Captures **everything** in a single chronological log file:
 | `[SYNAPSE INJECTION]` | Full `<synapse-rules>` XML | Every prompt |
 | `[STATIC CONTEXT]` | CLAUDE.md, rules/*.md, MEMORY.md listing | Every prompt |
 | `[CODE-INTEL INJECTION]` | `<code-intel-context>` XML | Every Write/Edit |
+| `[AGENT PROMPT]` | Full agent .md content | Every Skill activation |
 
 **When to use:** When you want a single place to see everything, instead of checking multiple log files.
 
@@ -218,7 +220,7 @@ Captures **everything** in a single chronological log file:
         "type": "command",
         "command": "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/code-intel-pretool.cjs"
       }],
-      "matcher": "Write|Edit"
+      "matcher": "Write|Edit|Skill"
     }]
   }
 }
@@ -275,7 +277,7 @@ There are **two separate hooks** that accept logging:
 | Hook Event | Script | Accepts |
 |------------|--------|---------|
 | `UserPromptSubmit` | `synapse-engine.cjs` | `RW_HOOKS_LOG`, `RW_SYNAPSE_TRACE`, `RW_CONTEXT_LOG_FULL` |
-| `PreToolUse` (Write\|Edit) | `code-intel-pretool.cjs` | `RW_INTEL_CONTEXT_LOG`, `RW_CONTEXT_LOG_FULL` |
+| `PreToolUse` (Write\|Edit\|Skill) | `code-intel-pretool.cjs` | `RW_INTEL_CONTEXT_LOG`, `RW_CONTEXT_LOG_FULL` |
 
 ### Examples
 
@@ -347,10 +349,11 @@ code snippets, and expected behavior. Do NOT guess — use the exact code from t
 1. `aios-aiox-riaworks/01-fix-hook-synapse.md` — SYNAPSE setup requirements
 2. `aios-aiox-riaworks/02-fix-hooks-bugs.md` — All 9 bug fixes with code
 3. `aios-aiox-riaworks/03-fix-windows-json-escape.md` — JSON escape fix with code
-4. `aios-aiox-riaworks/rw-hooks-log.md` — rwHooksLog() function and usage
-5. `aios-aiox-riaworks/rw-synapse-trace.md` — rwSynapseTrace() function and usage
-6. `aios-aiox-riaworks/rw-intel-context-log.md` — rwIntelContextLog() function and usage
-7. `aios-aiox-riaworks/rw-context-log-full.md` — rwContextLogFull() function and usage
+4. `aios-aiox-riaworks/04-fix-skill-logging.md` — Skill/agent activation logging
+5. `aios-aiox-riaworks/rw-hooks-log.md` — rwHooksLog() function and usage
+6. `aios-aiox-riaworks/rw-synapse-trace.md` — rwSynapseTrace() function and usage
+7. `aios-aiox-riaworks/rw-intel-context-log.md` — rwIntelContextLog() function and usage
+8. `aios-aiox-riaworks/rw-context-log-full.md` — rwContextLogFull() function and usage
 
 After reading, report a summary of what you found.
 
@@ -452,7 +455,7 @@ The AIOX framework evolves across sessions. Files may be renamed, methods refact
 | `.claude/settings.local.json` | Relative paths, no timeout, hooks on correct events |
 | `.aiox-core/core/synapse/runtime/hook-runtime.js` | `hookEventName`, `createSession()`, `rwHooksLog()`, `cleanOrphanTmpFiles()` |
 | `.claude/hooks/synapse-engine.cjs` | `sanitizeJsonString()`, `rwSynapseTrace()`, `rwContextLogFull()`, removal of `process.exit()` |
-| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwContextLogFull()`, removal of `process.exit()` (Bug 8) |
+| `.claude/hooks/code-intel-pretool.cjs` | Path `.aios-core` → `.aiox-core`, `rwIntelContextLog()`, `rwSkillLog()`, `rwContextLogFull()`, removal of `process.exit()` (Bug 8), Skill matcher (Fix 04) |
 | `.aiox-core/hooks/unified/runners/precompact-runner.js` | Runner copied from fork with adapted paths, removal of `console.log/error` (Bug 9) |
 | `bin/utils/pro-detector.js` | Precompact runner dependency |
 | `.logs/` | Directory created with `.gitignore` |
@@ -466,6 +469,7 @@ All RIAWORKS extensions use the `rw` prefix to differentiate from original AIOX 
 | `rwHooksLog()` | `RW_HOOKS_LOG=1` | `.logs/rw-hooks-log.log` |
 | `rwSynapseTrace()` | `RW_SYNAPSE_TRACE=1` | `.logs/rw-synapse-trace.log` |
 | `rwIntelContextLog()` | `RW_INTEL_CONTEXT_LOG=1` | `.logs/rw-intel-context-log.log` |
+| `rwSkillLog()` | `RW_INTEL_CONTEXT_LOG=1` or `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-intel-context-log.log` + `.logs/rw-context-log-full.log` |
 | `rwContextLogFull()` | `RW_CONTEXT_LOG_FULL=1` | `.logs/rw-context-log-full.log` |
 
 ## Original Repository

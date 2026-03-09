@@ -9,7 +9,7 @@
 
 ## O que e
 
-Log que registra o **XML `<code-intel-context>` injetado** pelo hook de code-intel a cada operacao Write ou Edit. Responde a pergunta: "que contexto de codigo foi injetado quando o agente editou este arquivo?"
+Log que registra o **XML `<code-intel-context>` injetado** pelo hook de code-intel a cada operacao Write ou Edit, e tambem **prompts de agentes** carregados via Skill activation. Responde a pergunta: "que contexto de codigo foi injetado quando o agente editou este arquivo?" e "que prompt de agente foi carregado?"
 
 Nao registra regras do Synapse (para isso use `rwSynapseTrace`). Nao registra o log operacional (para isso use `rwHooksLog`).
 
@@ -24,7 +24,10 @@ O hook `code-intel-pretool.cjs` injeta contexto invisivel sobre entidades, refer
 
 ## Quando dispara
 
-Somente em operacoes **Write** e **Edit** do Claude Code. Nao dispara em Read, Bash, Grep, etc. Portanto, o log so tera entries quando o agente estiver escrevendo ou editando arquivos.
+Em operacoes **Write**, **Edit** e **Skill** do Claude Code. Nao dispara em Read, Bash, Grep, etc.
+
+- **Write/Edit:** Loga o XML `<code-intel-context>` injetado via `rwIntelContextLog()`
+- **Skill:** Loga o prompt completo do agente carregado via `rwSkillLog()` (ex: `/AIOX:agents:pm` loga o conteudo de `.aiox-core/development/agents/pm.md`)
 
 ## Como ativar
 
@@ -36,7 +39,7 @@ Adicione `RW_INTEL_CONTEXT_LOG=1` no comando do hook em `.claude/settings.local.
     "type": "command",
     "command": "RW_INTEL_CONTEXT_LOG=1 node .claude/hooks/code-intel-pretool.cjs"
   }],
-  "matcher": "Write|Edit"
+  "matcher": "Write|Edit|Skill"
 }]
 ```
 
@@ -99,7 +102,7 @@ TOOL: Edit -> .claude/hooks/synapse-engine.cjs
 |-----|---------------|--------|
 | `rw-hooks-log` | Status operacional dos hooks | UserPromptSubmit |
 | `rw-synapse-trace` | XML do Synapse injetado | UserPromptSubmit |
-| **`rw-intel-context-log`** | **XML do code-intel injetado** | **PreToolUse (Write/Edit)** |
+| **`rw-intel-context-log`** | **XML do code-intel + prompts de agentes** | **PreToolUse (Write/Edit/Skill)** |
 | `rw-context-log-full` | Tudo unificado | Ambos |
 
 ---

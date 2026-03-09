@@ -22,6 +22,7 @@ Substitui a necessidade de ativar `RW_HOOKS_LOG`, `RW_SYNAPSE_TRACE` e `RW_INTEL
 | `[SYNAPSE INJECTION]` | XML `<synapse-rules>` completo | Cada prompt |
 | `[STATIC CONTEXT]` | Listagem de CLAUDE.md, rules/*.md, MEMORY.md | Cada prompt |
 | `[CODE-INTEL INJECTION]` | XML `<code-intel-context>` | Cada Write/Edit |
+| `[AGENT PROMPT]` | Conteudo completo do agente .md | Cada Skill activation |
 
 ## Como ativar
 
@@ -35,7 +36,7 @@ Adicione `RW_CONTEXT_LOG_FULL=1` em **ambos** os hooks em `.claude/settings.loca
         "type": "command",
         "command": "RW_CONTEXT_LOG_FULL=1 node .claude/hooks/code-intel-pretool.cjs"
       }],
-      "matcher": "Write|Edit"
+      "matcher": "Write|Edit|Skill"
     }],
     "UserPromptSubmit": [{
       "hooks": [{
